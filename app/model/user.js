@@ -10,8 +10,9 @@ module.exports = app => {
       autoIncrement: true,
     },
     name: CHAR(30),
+    // 0 = 女, 1 = 男
     gender: TINYINT,
-    created_at: DATE(6),
+    created_at: DATE,
     updated_at: DATE,
   });
 
