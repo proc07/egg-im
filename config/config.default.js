@@ -26,6 +26,29 @@ module.exports = appInfo => {
     database: 'zl-im',
     username: 'root',
     password: '123456',
+    define: {
+      freezeTableName: true,
+    },
+    // https://github.com/sequelize/sequelize/issues/854
+    timezone: '+08:00', // 保存为本地时区
+    dialectOptions: {
+      dateStrings: true,
+      typeCast(field, next) {
+        // for reading from database
+        if (field.type === 'DATETIME') {
+          return field.string();
+        }
+        return next();
+      },
+    },
+  };
+
+  config.cluster = {
+    listen: {
+      port: 7000,
+      hostname: '127.0.0.1',
+      // path: '/var/run/egg.sock',
+    },
   };
 
   // add your user config here

@@ -3,8 +3,9 @@
 module.exports = app => {
   console.log(app.config.env);
   if (app.config.env === 'local' || app.config.env === 'unittest') {
-    // app.beforeStart(async () => {
-    //   await app.model.sync({ force: true });
-    // });
+    // 同步数据表字段
+    app.beforeStart(async () => {
+      await app.model.sync({ force: true });
+    });
   }
 };

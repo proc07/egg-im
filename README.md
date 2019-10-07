@@ -31,3 +31,14 @@ $ npm stop
 
 
 [egg]: https://eggjs.org
+
+
+### 踩坑笔记
+
+#### sequelize 目前 model 不能自动生成 migrate，只能手动维护 migrate 迁移数据库（其实就是多复制一遍代码）
+
+- (egg-sequelize issues)[https://github.com/eggjs/egg/issues/1538]
+
+#### model 创建的表，名称后面自动添加了 's'
+#### UTC时间格式问题
+
