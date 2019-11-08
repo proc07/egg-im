@@ -1,5 +1,5 @@
 'use strict';
-
+const moment = require('moment');
 // 群组成员
 module.exports = app => {
   const { UUID, UUIDV1, DATE, STRING, TINYINT } = app.Sequelize;
@@ -43,8 +43,18 @@ module.exports = app => {
       },
       allowNull: true,
     },
-    createdAt: DATE,
-    updatedAt: DATE,
+    createdAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('createdAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    updatedAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
   });
 
   return GroupMember;

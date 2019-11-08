@@ -1,5 +1,5 @@
 'use strict';
-
+const moment = require('moment');
 // 消息推送历史纪录表
 module.exports = app => {
   const { UUID, UUIDV1, DATE, BLOB, STRING, TINYINT } = app.Sequelize;
@@ -10,7 +10,7 @@ module.exports = app => {
       primaryKey: true,
       defaultValue: UUIDV1,
     },
-    // 消息送到时间，可为空
+    // 消息送到时间，默认为空
     arrivalAt: DATE,
     // 实体：存储的就是 message 消息模型的 json 数据
     entity: BLOB,
@@ -35,8 +35,18 @@ module.exports = app => {
       },
       allowNull: true,
     },
-    createdAt: DATE,
-    updatedAt: DATE,
+    createdAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('createdAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    updatedAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
   });
 
   return PushHistory;

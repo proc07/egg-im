@@ -1,5 +1,5 @@
 'use strict';
-
+const moment = require('moment');
 // 用户聊天对话表
 module.exports = app => {
   const { UUID, DATE, STRING, TEXT, TINYINT } = app.Sequelize;
@@ -53,8 +53,18 @@ module.exports = app => {
       type: TINYINT,
       allowNull: false,
     },
-    createdAt: DATE,
-    updatedAt: DATE,
+    createdAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('createdAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    updatedAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
   });
 
   return Message;

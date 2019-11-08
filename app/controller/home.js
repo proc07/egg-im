@@ -1,11 +1,11 @@
 'use strict';
 
-const Controller = require('egg').Controller;
+const BaseController = require('./base');
 
-class HomeController extends Controller {
+class HomeController extends BaseController {
   async index() {
     const { ctx } = this;
-    ctx.body = 'hi, egg';
+    await ctx.render('socketio-demo');
   }
 }
 

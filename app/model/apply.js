@@ -1,8 +1,8 @@
 'use strict';
-
+const moment = require('moment');
 // 申请表
 module.exports = app => {
-  const { UUID, UUIDV1, DATE, STRING, TINYINT } = app.Sequelize;
+  const { UUID, UUIDV1, DATE, STRING, TINYINT, BOOLEAN } = app.Sequelize;
   const Apply = app.model.define('apply', {
     id: {
       type: UUID,
@@ -33,8 +33,23 @@ module.exports = app => {
       type: UUID,
       allowNull: true,
     },
-    createdAt: DATE,
-    updatedAt: DATE,
+    // 通过或者拒绝
+    // status: {
+    //   type: BOOLEAN,
+    //   defaultValue: false,
+    // },
+    createdAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('createdAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    updatedAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
   });
 
   return Apply;

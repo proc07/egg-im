@@ -1,4 +1,5 @@
 'use strict';
+const moment = require('moment');
 
 // 用户关注表
 module.exports = app => {
@@ -32,19 +33,19 @@ module.exports = app => {
     },
     // 对 target 用户的备注名称
     alias: STRING(128),
-    createdAt: DATE,
-    updatedAt: DATE,
+    createdAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('createdAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    updatedAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
   });
-
-  // 获取我关注的人
-  UserFollow.prototype.getFollowing = function() {
-
-  };
-
-  // 获取关注我的人
-  UserFollow.prototype.getFollowers = function() {
-
-  };
 
   return UserFollow;
 };

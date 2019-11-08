@@ -1,39 +1,160 @@
 'use strict';
 
-const Controller = require('egg').Controller;
+const BaseController = require('./base');
+const bcrypt = require('bcrypt-nodejs');
+const moment = require('moment');
 
-function toInt(str) {
-  if (typeof str === 'number') return str;
-  if (!str) return str;
-  return parseInt(str, 10) || 0;
-}
+const SALT_WORK_FACTOR = 7;
 
-class UserController extends Controller {
-  async index() {
+const registerRule = {
+  name: {
+    type: 'string',
+    message: {
+      required: '请填写你的名称！',
+      unique: '名称已存在，请更换！',
+    },
+  },
+  phone: {
+    type: 'string',
+    message: {
+      required: '请填写你的邮箱！',
+      unique: '邮箱已被注册，请直接登录！',
+    },
+  },
+  password: {
+    type: 'string',
+    message: {
+      required: '请填写你的密码！',
+    },
+  },
+  // portrait: 'string',
+  // gender: 'number',
+  // description: 'string',
+};
+
+class UserController extends BaseController {
+  // 注册用户
+  async register() {
     const ctx = this.ctx;
-    const query = { limit: toInt(ctx.query.limit), offset: toInt(ctx.query.offset) };
-    ctx.body = await ctx.model.User.findAll(query);
-  }
+    try {
+      ctx.validate(registerRule, ctx.request.body);
+      const { name, phone, password } = ctx.request.body;
+      // 1.加盐
+      const genSaltRes = await bcrypt.genSaltSync(SALT_WORK_FACTOR);
+      // 2.加密
+      const passwordHashRes = await bcrypt.hashSync(password, genSaltRes);
+      // 3.插入
+      const user = await ctx.model.User.create({ name, phone, password: passwordHashRes });
 
-  async create() {
-    const ctx = this.ctx;
-    const { name, gender, id } = ctx.query;
-    const user = await ctx.model.User.create({ name, gender, id });
-    ctx.status = 201;
-    ctx.body = user;
-  }
-
-  async remove() {
-    const ctx = this.ctx;
-    const id = toInt(ctx.params.id);
-    const user = await ctx.model.User.findByPk(id);
-    if (!user) {
-      ctx.status = 404;
-      return;
+      this.baseSuccess(user);
+    } catch (error) {
+      if (error.code === 'invalid_param') {
+        this.baseError(error);
+      } else if (error.name === 'SequelizeUniqueConstraintError') {
+        this.baseError(registerRule[error.baseErrors[0].path].message.unique);
+      }
     }
+  }
 
-    await user.destroy();
-    ctx.status = 200;
+  // 更新用户信息
+  async onlyUpdatedOnce() {
+    const ctx = this.ctx;
+    const { id, portrait, gender, description } = ctx.request.body;
+    const expiredTime = 1000 * 60 * 10; // 10分钟有效时间内可修改
+
+    try {
+      const userRes = await ctx.model.User.findOne({
+        where: { id },
+        attributes: {
+          exclude: [ 'password', 'createdAt', 'updatedAt' ],
+        },
+      });
+      const createTimeStamp = moment(userRes.createdAt).valueOf();
+      const nowTimeStamp = moment(Date.now()).valueOf();
+
+      if (userRes) {
+        if (expiredTime >= nowTimeStamp - createTimeStamp) {
+          try {
+            await userRes.update({
+              portrait,
+              gender,
+              description,
+            });
+            this.baseSuccess(userRes);
+          } catch (e) {
+            this.baseError('更新失败！');
+          }
+        } else {
+          this.baseError('无法修改，请重新登录！');
+        }
+      } else {
+        this.baseError('查询不到该用户！');
+      }
+    } catch (error) {
+      this.baseError(error);
+    }
+  }
+
+  // 登录
+  async login() {
+    const { ctx, app } = this;
+    const { account, password } = ctx.request.body;
+    const userRes = await ctx.model.User.findOne({
+      where: { phone: account },
+    });
+
+    if (userRes && (await bcrypt.compareSync(password, userRes.password))) {
+      // 登录成功，生成token
+      const jwtToken = await ctx.service.user.createToken({
+        phone: account,
+      });
+      const userUpdate = await userRes.update({
+        token: jwtToken,
+      }, {
+        attributes: {
+          exclude: [ 'password', 'createdAt', 'updatedAt' ],
+        },
+      });
+      await app.sessionStore.set(account, jwtToken);
+      await app.sessionStore.set(jwtToken, userUpdate);
+      this.baseSuccess({
+        user: userUpdate,
+        jwt_token: jwtToken,
+      });
+    } else {
+      this.baseError('账号或密码错误，请重试！');
+    }
+  }
+
+  // 退出
+  async logout() {
+    const { ctx, app } = this;
+    const token = this.getAccessToken(ctx);
+    const verifyRes = await ctx.service.user.verifyToken(token);
+    const isSuccess = await app.sessionStore.destroy(verifyRes.phone);
+    // 是否需要删除数据中的 token
+    if (isSuccess) {
+      this.baseSuccess('退出成功！');
+    } else {
+      this.baseError('退出失败！');
+    }
+  }
+
+  // 搜索用户
+  async searchUserByPhoneOrName() {
+    const { ctx } = this;
+    const { search } = ctx.request.query;
+
+    try {
+      const userRes = await ctx.model.User.searchUser(search);
+      this.baseSuccess(userRes);
+    } catch (error) {
+      this.baseError(error);
+    }
+  }
+
+  // 获取用户全部好友及群
+  async getUserFriendsAndGroup() {
   }
 }
 
