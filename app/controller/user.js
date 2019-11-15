@@ -115,8 +115,10 @@ class UserController extends BaseController {
           exclude: [ 'password', 'createdAt', 'updatedAt' ],
         },
       });
-      await app.sessionStore.set(account, jwtToken);
-      await app.sessionStore.set(jwtToken, userUpdate);
+      // 30day
+      const expireTime = 30 * 24 * 60 * 60 * 1000;
+      await app.sessionStore.set(account, jwtToken, expireTime);
+      await app.sessionStore.set(jwtToken, userUpdate, expireTime);
       this.baseSuccess({
         user: userUpdate,
         jwt_token: jwtToken,

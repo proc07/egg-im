@@ -35,11 +35,8 @@ class FollowController extends BaseController {
         originId,
         targetId: selfData.id,
       });
-      const tFollowRes = await ctx.model.UserFollow.create({
-        originId: selfData.id,
-        targetId: originId,
-      });
-      if (oFollowRes && tFollowRes) {
+
+      if (oFollowRes) {
         this.baseSuccess('添加成功！');
       }
     } catch (error) {
@@ -71,13 +68,22 @@ class FollowController extends BaseController {
 
   // 获取我关注的人
   async getFollowers() {
-    const { ctx } = this;
+    const { ctx, app } = this;
+    const Op = app.Sequelize.Op;
 
     try {
       const selfData = await this.getUser();
+      // 获取 向我申请的人和被我申请的人
       const followRes = await ctx.model.UserFollow.findAll({
         where: {
-          originId: selfData.id,
+          [Op.or]: [
+            {
+              originId: selfData.id,
+            },
+            {
+              targetId: selfData.id,
+            },
+          ],
         },
       });
       this.baseSuccess(followRes);

@@ -12,6 +12,7 @@ module.exports = app => {
   // socket.io
   io.of('/chat-im').route('chatMessage', io.controller.chat.chatMessage);
   io.of('/chat-im').route('sendMsg', io.controller.chat.sendMsg);
+  io.of('/chat-im').route('readMsg', io.controller.chat.readMsg);
 
   // api
   router.post('/user/register', controller.user.register);
@@ -26,4 +27,6 @@ module.exports = app => {
   router.post('/follow/applyUserFollow', jwt, controller.follow.applyUserFollow);
   router.post('/follow/saveUserAlias', jwt, controller.follow.saveUserAlias);
   router.get('/follow/getFollowers', jwt, controller.follow.getFollowers);
+
+  router.get('/chat/getHistory', controller.chat.getHistory);
 };

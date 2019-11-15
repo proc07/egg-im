@@ -11,7 +11,12 @@ module.exports = app => {
       defaultValue: UUIDV1,
     },
     // 消息送到时间，默认为空
-    arrivalAt: DATE,
+    arrivalAt: {
+      type: DATE,
+      get() {
+        return moment(this.getDataValue('arrivalAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
     // 实体：存储的就是 message 消息模型的 json 数据
     entity: BLOB,
     entityType: TINYINT,
