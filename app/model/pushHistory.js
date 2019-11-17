@@ -1,6 +1,7 @@
 'use strict';
 const moment = require('moment');
 // 消息推送历史纪录表
+// 作用：我这个用户需要收到哪些消息。不管是人给我发的消息，还是群发的，还是系统发的，都会在这个表中有一条记录
 module.exports = app => {
   const { UUID, UUIDV1, DATE, BLOB, STRING, TINYINT } = app.Sequelize;
   const PushHistory = app.model.define('push_history', {
@@ -17,8 +18,10 @@ module.exports = app => {
         return moment(this.getDataValue('arrivalAt')).format('YYYY-MM-DD HH:mm:ss');
       },
     },
-    // 实体：存储的就是 message 消息模型的 json 数据
+    // 1. 实体：存储的就是 message 消息模型的 json 数据
+    // 2. 用户修改了群名称（例：xxx修改了群名称）
     entity: BLOB,
+    // 对应 entity 的索引值
     entityType: TINYINT,
     // 接收者（预加载）
     receiverId: {
