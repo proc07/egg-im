@@ -15,13 +15,24 @@ module.exports = app => {
     arrivalAt: {
       type: DATE,
       get() {
-        return moment(this.getDataValue('arrivalAt')).format('YYYY-MM-DD HH:mm:ss');
+        const arrivalAt = this.getDataValue('arrivalAt');
+        if (!arrivalAt) {
+          return null;
+        }
+        return moment(arrivalAt).format('YYYY-MM-DD HH:mm:ss');
       },
     },
     // 1. 实体：存储的就是 message 消息模型的 json 数据
     // 2. 用户修改了群名称（例：xxx修改了群名称）
+    // 3. ...
     entity: BLOB,
-    // 对应 entity 的索引值
+    // ENTITY_TYPE_LOGOUT  -1
+    // ENTITY_TYPE_MESSAGE  200
+    // ENTITY_TYPE_ADD_FRIEND 1001
+    // ENTITY_TYPE_ADD_GROUP 1002
+    // ENTITY_TYPE_ADD_GROUP_MEMBERS 1003
+    // ENTITY_TYPE_MODIFY_GROUP_MEMBERS 2001
+    // ENTITY_TYPE_EXIT_GROUP_MEMBERS 3001
     entityType: TINYINT,
     // 接收者（预加载）
     receiverId: {

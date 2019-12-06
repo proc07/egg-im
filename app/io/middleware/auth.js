@@ -2,14 +2,6 @@
 
 const USER_ONLINE_LIST = 'USER_ONLINE_LIST';
 
-function getFriendUserId(itemFriend, selfId) {
-  if (itemFriend.originId === selfId) {
-    return itemFriend.targetId;
-  } else if (itemFriend.targetId === selfId) {
-    return itemFriend.originId;
-  }
-}
-
 // 在每一个客户端连接或者退出时发生作用，故而我们通常在这一步进行授权认证，对认证失败的客户端做出相应的处理
 module.exports = () => {
   return async (ctx, next) => {
@@ -36,11 +28,9 @@ module.exports = () => {
       userOnlineList = userOnlineList.concat(userRes.id);
       await app.sessionStore.set(USER_ONLINE_LIST, userOnlineList);
     }
-    socket.broadcast.emit('broadcast', '在线用户: ' + userOnlineList);
 
-    // 检查 friendList 好友是否在线，并进行绑定房间
+    // 检查 friendList 好友是否在线，并进行绑定房间 (获取 向我申请的人和被我申请的人)
     const Op = app.Sequelize.Op;
-    // 获取 向我申请的人和被我申请的人
     const followRes = await model.UserFollow.findAll({
       where: {
         [Op.or]: [
@@ -54,23 +44,27 @@ module.exports = () => {
       },
     });
 
-    // 一对一
+    // 一对一 单聊
     followRes.forEach(itemFriend => {
-      const friendId = getFriendUserId(itemFriend, userRes.id);
-      const isOnline = userOnlineList.findIndex(id => id === friendId);
-
-      // 好友在线，进行关联房间号
-      if (isOnline !== -1) {
-        console.log('加入房间：', itemFriend.id);
-        socket.join(itemFriend.id);
-
-        nsp.adapter.clients([ itemFriend.id ], (err, clients) => {
-          console.log(clients, 'join clients');
-        });
-      }
+      // 不管好友在不在线，进行关联房间号
+      socket.join(itemFriend.id);
     });
 
-    // 一对多
+    // 一对多 群聊
+
+    // 获取 push_history 表中未读的数据
+    const unReadHistoryData = await model.PushHistory.findAll({
+      where: {
+        receiverId: userRes.id,
+        arrivalAt: null,
+      },
+    });
+
+    unReadHistoryData.forEach(item => {
+      item.entity = item.entity.toString();
+    });
+
+    socket.emit('unReadMsg', unReadHistoryData);
 
     await next();
     console.log('客户端退出!', userRes.name);
@@ -82,12 +76,6 @@ module.exports = () => {
 
     await app.sessionStore.set(USER_ONLINE_LIST, onlineList);
     socket.broadcast.emit('broadcast', '在线用户: ' + onlineList);
-
-    followRes.forEach(itemFriend => {
-      nsp.adapter.clients([ itemFriend.id ], (err, clients) => {
-        console.log(clients, 'leave clients');
-      });
-    });
 
   };
 };

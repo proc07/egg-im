@@ -1,6 +1,6 @@
 # im-webapp
 
-egg im webpp
+IM实现思路参考 (现代IM系统中消息推送和存储架构的实现)[http://www.imooc.com/article/21659]
 
 - 如何统计聊天接口每次获取数据的时长，数据量大的时候如何进行优化。
 

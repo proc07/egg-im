@@ -1,6 +1,8 @@
 'use strict';
 
 const { Controller } = require('egg');
+const SUCCESS = 1;
+const ERROR = 0;
 
 class BaseController extends Controller {
   async getUser() {
@@ -15,7 +17,7 @@ class BaseController extends Controller {
 
   baseSuccess(reslut) {
     this.ctx.body = {
-      success: true,
+      status: SUCCESS,
       data: reslut,
       message: null,
     };
@@ -24,7 +26,7 @@ class BaseController extends Controller {
 
   baseError(msg) {
     this.ctx.body = {
-      success: false,
+      status: ERROR,
       data: null,
       message: msg,
     };

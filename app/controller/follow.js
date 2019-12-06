@@ -1,5 +1,4 @@
 'use strict';
-
 const BaseController = require('./base');
 
 class FollowController extends BaseController {
@@ -85,9 +84,27 @@ class FollowController extends BaseController {
             },
           ],
         },
+        include: [{
+          model: ctx.model.User,
+          as: 'originUser',
+          attributes: {
+            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+          },
+          where: { id: { [Op.ne]: selfData.id } },
+          required: false,
+        }, {
+          model: ctx.model.User,
+          as: 'targetUser',
+          attributes: {
+            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+          },
+          where: { id: { [Op.ne]: selfData.id } },
+          required: false,
+        }],
       });
       this.baseSuccess(followRes);
     } catch (error) {
+      console.log(error);
       this.baseError(error);
     }
   }

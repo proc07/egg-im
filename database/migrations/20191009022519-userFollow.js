@@ -33,6 +33,14 @@ module.exports = {
       alias: STRING(128),
       createdAt: DATE,
       updatedAt: DATE,
+    }, {
+      classMethods: {
+        associate(model) {
+          // { foreignKey: 'originId', targetKey: 'id' }
+          console.log('associate');
+          model.UserFollow.belongsTo(model.User);
+        },
+      },
     });
   },
 

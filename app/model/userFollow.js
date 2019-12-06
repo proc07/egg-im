@@ -47,5 +47,10 @@ module.exports = app => {
     },
   });
 
+  UserFollow.associate = function() {
+    app.model.UserFollow.belongsTo(app.model.User, { foreignKey: 'originId', targetKey: 'id', as: 'originUser' });
+    app.model.UserFollow.belongsTo(app.model.User, { foreignKey: 'targetId', targetKey: 'id', as: 'targetUser' });
+  };
+
   return UserFollow;
 };

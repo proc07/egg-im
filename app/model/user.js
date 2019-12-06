@@ -13,8 +13,10 @@ module.exports = app => {
       defaultValue: UUIDV1,
     },
     description: STRING(255),
-    // 最后收到消息的时间
-    lastReceivedAt: DATE,
+    lastReceivedAt: {
+      type: DATE,
+      comment: '最后收到消息的时间',
+    },
     name: {
       type: STRING(128),
       unique: true,
@@ -27,9 +29,10 @@ module.exports = app => {
       allowNull: false,
     },
     portrait: STRING(255),
-    // 用于推送手机端设备 ID
-    pushId: STRING(255),
-    // 1 = 女, 2 = 男
+    pushId: {
+      type: STRING(255),
+      comment: '用于推送手机端设备 ID',
+    },
     gender: {
       type: TINYINT,
       // validate: {
@@ -38,6 +41,7 @@ module.exports = app => {
       set(val) {
         this.setDataValue('gender', parseInt(val) || '');
       },
+      comment: '1 = 女, 2 = 男',
     },
     // 单点登录
     token: {
@@ -54,6 +58,12 @@ module.exports = app => {
       type: DATE,
       get() {
         return moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+  }, {
+    classMethods: {
+      associate() {
+        // app.model.User.belongsTo(app.model.UserFollow);
       },
     },
   });

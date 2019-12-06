@@ -48,10 +48,10 @@ class UserController extends BaseController {
 
       this.baseSuccess(user);
     } catch (error) {
-      if (error.code === 'invalid_param') {
-        this.baseError(error);
-      } else if (error.name === 'SequelizeUniqueConstraintError') {
-        this.baseError(registerRule[error.baseErrors[0].path].message.unique);
+      if (error.code === 'invalid_param') { // 参数没传入
+        this.baseError(error.errors[0].message || error);
+      } else if (error.name === 'SequelizeUniqueConstraintError') { // 数据库已存在相同数据
+        this.baseError(registerRule[error.errors[0].path].message.unique);
       }
     }
   }
@@ -95,6 +95,25 @@ class UserController extends BaseController {
     }
   }
 
+  // 获取用户信息
+  async getUserInfo() {
+    const { ctx, app } = this;
+    const token = this.getAccessToken();
+    const verifyRes = await ctx.service.user.verifyToken(token);
+
+    try {
+      const userRes = await ctx.model.User.findOne({
+        where: { phone: verifyRes.phone },
+        attributes: {
+          exclude: [ 'password', 'createdAt', 'updatedAt' ],
+        },
+      });
+      this.baseSuccess(userRes);
+    } catch (error) {
+      this.baseError(error);
+    }
+  }
+
   // 登录
   async login() {
     const { ctx, app } = this;
@@ -131,7 +150,7 @@ class UserController extends BaseController {
   // 退出
   async logout() {
     const { ctx, app } = this;
-    const token = this.getAccessToken(ctx);
+    const token = this.getAccessToken();
     const verifyRes = await ctx.service.user.verifyToken(token);
     const isSuccess = await app.sessionStore.destroy(verifyRes.phone);
     // 是否需要删除数据中的 token

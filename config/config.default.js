@@ -17,7 +17,6 @@ module.exports = appInfo => {
 
   // add your middleware config here
   config.middleware = [
-    'jwtErrorHandler',
   ];
 
   // 项目配置
@@ -101,6 +100,9 @@ module.exports = appInfo => {
         port: 6379,
         // db: 0,
       },
+    },
+    multipart: {
+      mode: 'file',
     },
   };
 

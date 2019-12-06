@@ -3,6 +3,7 @@
 const BaseController = require('./base');
 
 class ChatController extends BaseController {
+  // test
   async getHistory() {
     const { ctx } = this;
     const data = await ctx.model.PushHistory.findAll();
