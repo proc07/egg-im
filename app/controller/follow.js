@@ -72,6 +72,16 @@ class FollowController extends BaseController {
 
     try {
       const selfData = await this.getUser();
+      const options = {
+        model: ctx.model.User,
+        attributes: {
+          exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+        },
+        // 不展示自己id的数据
+        where: { id: { [Op.ne]: selfData.id } },
+        required: false,
+      };
+
       // 获取 向我申请的人和被我申请的人
       const followRes = await ctx.model.UserFollow.findAll({
         where: {
@@ -85,21 +95,11 @@ class FollowController extends BaseController {
           ],
         },
         include: [{
-          model: ctx.model.User,
           as: 'originUser',
-          attributes: {
-            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
-          },
-          where: { id: { [Op.ne]: selfData.id } },
-          required: false,
+          ...options,
         }, {
-          model: ctx.model.User,
           as: 'targetUser',
-          attributes: {
-            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
-          },
-          where: { id: { [Op.ne]: selfData.id } },
-          required: false,
+          ...options,
         }],
       });
       this.baseSuccess(followRes);
@@ -109,6 +109,36 @@ class FollowController extends BaseController {
     }
   }
 
+  // 获取一对一 我和好友信息
+  async getFriendFollow() {
+    const { ctx, app } = this;
+    const { followId } = ctx.request.query;
+
+    try {
+      const followRes = await ctx.model.UserFollow.findOne({
+        where: {
+          id: followId,
+        },
+        include: [{
+          as: 'originUser',
+          model: ctx.model.User,
+          attributes: {
+            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+          },
+        }, {
+          as: 'targetUser',
+          model: ctx.model.User,
+          attributes: {
+            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+          },
+        }],
+      });
+      this.baseSuccess(followRes);
+    } catch (error) {
+      console.log(error);
+      this.baseError(error);
+    }
+  }
 }
 
 module.exports = FollowController;

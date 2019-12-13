@@ -174,8 +174,8 @@ class UserController extends BaseController {
     }
   }
 
-  // 获取用户全部好友及群
-  async getUserFriendsAndGroup() {
+  // 获取用户群
+  async getUserGroup() {
   }
 }
 

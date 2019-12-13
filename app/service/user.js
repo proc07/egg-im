@@ -6,7 +6,7 @@ class UserService extends Service {
   // 生成 Token
   createToken(data) {
     const { app } = this;
-    return app.jwt.sign(data, app.config.jwt.secret, { expiresIn: '24h' });
+    return app.jwt.sign(data, app.config.jwt.secret, { expiresIn: '30d' });
   }
 
   // 验证token的合法性

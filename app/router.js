@@ -11,10 +11,10 @@ module.exports = app => {
   router.get('/', controller.home.index);
 
   // socket.io
-  io.of('/chat-im').route('chatMessage', io.controller.chat.chatMessage);
   io.of('/chat-im').route('sendMsg', io.controller.chat.sendMsg);
-  io.of('/chat-im').route('readMsg', io.controller.chat.readMsg);
-  io.of('/chat-im').route('getFriendMsgHistory', io.controller.chat.getFriendMsgHistory);
+  io.of('/chat-im').route('setReadMsg', io.controller.chat.setReadMsg);
+  io.of('/chat-im').route('getHistoryMsg', io.controller.chat.getHistoryMsg);
+  io.of('/chat-im').route('getChatList', io.controller.chat.getChatList);
 
   // api
   router.post('/cloudinary/uploadImage', controller.upload.uploadImage);
@@ -32,6 +32,7 @@ module.exports = app => {
   router.post('/follow/applyUserFollow', jwtErrorHandler, controller.follow.applyUserFollow);
   router.post('/follow/saveUserAlias', jwtErrorHandler, controller.follow.saveUserAlias);
   router.get('/follow/getFollowers', jwtErrorHandler, controller.follow.getFollowers);
+  router.get('/follow/getFriendFollow', jwtErrorHandler, controller.follow.getFriendFollow);
 
   router.get('/chat/getHistory', controller.chat.getHistory);
 };
