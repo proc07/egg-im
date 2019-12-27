@@ -1,8 +1,13 @@
 # im-webapp
 
-IM实现思路参考 (现代IM系统中消息推送和存储架构的实现)[http://www.imooc.com/article/21659]
+参考 (现代IM系统中消息推送和存储架构的实现)[http://www.imooc.com/article/21659]
 
-- 如何统计聊天接口每次获取数据的时长，数据量大的时候如何进行优化。
+1、发送消息是先存储后同步。
+2、消息会有两个库来保存，一个是消息存储库，用于全量保存所有会话的消息，主要用于支持消息漫游。另一个是消息同步库，主要用于接收方的多端同步。
+3、在线的接收方，会直接选择在线推送。
+3.1、将获取的数据缓存到本地（本地存储是有大小限制的），下次进入时获取本地最后一条消息时间至现在时间之间的数据
+4、对于在线推送失败或者离线的接收方，会主动的向服务端拉取所有未同步消息。
+5、接收方何时来同步以及会在哪些端来同步消息对服务端来说是未知的，所以要求服务端必须保存所有需要同步到接收方的消息，这是消息同步库的主要作用 疑问点？
 
 ## QuickStart
 
@@ -17,22 +22,6 @@ $ npm i
 $ npm run dev
 $ open http://localhost:7001/
 ```
-
-### Deploy
-
-```bash
-$ npm start
-$ npm stop
-```
-
-### npm scripts
-
-- Use `npm run lint` to check code style.
-- Use `npm test` to run unit test.
-- Use `npm run autod` to auto detect dependencies upgrade, see [autod](https://www.npmjs.com/package/autod) for more detail.
-
-
-[egg]: https://eggjs.org
 
 ### redis
 

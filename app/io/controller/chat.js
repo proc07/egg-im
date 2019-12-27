@@ -2,12 +2,13 @@
 
 const Controller = require('egg').Controller;
 const moment = require('moment');
+const GET_MSG_NUM = 10; // 每次获取聊天数量
 
 class ChatController extends Controller {
   // 单聊发送
   async sendMsg() {
     const { ctx, app } = this;
-    const nsp = app.io.of('/chat-im');
+    // const nsp = app.io.of('/chat-im');
     const [{ uuid, msg, roomid }, callBack ] = ctx.args;
     const { token } = ctx.socket.handshake.query;
     const userRes = await app.sessionStore.get(token);
@@ -17,7 +18,7 @@ class ChatController extends Controller {
       },
     });
     const receiverId = followRes.originId === userRes.id ? followRes.targetId : followRes.originId;
-    console.log(ctx.args);
+
     try {
       // 创建 message 表
       const msgRes = await ctx.model.Message.create({
@@ -54,8 +55,8 @@ class ChatController extends Controller {
 
   // 设置已读
   async setReadMsg() {
-    const { ctx, app } = this;
-    const nsp = app.io.of('/chat-im');
+    const { ctx } = this;
+    // const nsp = app.io.of('/chat-im');
     const [ id, callback ] = ctx.args;
 
     const historyData = await ctx.model.PushHistory.findOne({
@@ -73,10 +74,11 @@ class ChatController extends Controller {
     }
   }
 
+  // 获取聊天过的好友记录
   async getChatList() {
     const { ctx, app } = this;
     const Op = app.Sequelize.Op;
-    const nsp = app.io.of('/chat-im');
+    // const nsp = app.io.of('/chat-im');
     const [ date, callBack ] = ctx.args;
     const { token } = ctx.socket.handshake.query;
     const userRes = await app.sessionStore.get(token);
@@ -102,7 +104,7 @@ class ChatController extends Controller {
 
       // 获取全部未读消息
       const historyMsgRes = await ctx.model.PushHistory.findAll({
-        limit: 10,
+        limit: GET_MSG_NUM,
         order: [
           [ 'createdAt', 'DESC' ],
         ],
@@ -140,11 +142,9 @@ class ChatController extends Controller {
           item.entity = JSON.parse(item.entity);
         });
 
-        const lastReceivedAt = historyMsgRes[0].createdAt;
         messageRes.push({
           roomId: itemFriend.id,
           message: historyMsgRes.reverse(),
-          lastReceivedAt,
           unReadNum: unReadMsgLength,
         });
       }
@@ -157,68 +157,50 @@ class ChatController extends Controller {
   async getHistoryMsg() {
     const { ctx, app } = this;
     const Op = app.Sequelize.Op;
-    const nsp = app.io.of('/chat-im');
-    const [ date, callBack ] = ctx.args;
+    // const nsp = app.io.of('/chat-im');
+    const [{ lastDate, friendId }, callBack ] = ctx.args;
     const { token } = ctx.socket.handshake.query;
     const userRes = await app.sessionStore.get(token);
-    const messageRes = [];
+    let messageRes = [];
 
-    // 获取全部好友
-    const followRes = await ctx.model.UserFollow.findAll({
+    // 首次获取10条记录，之后加载历史记录，改由 createdAt 字段来获取，防止新增数据影响 limit
+    const historyMsgRes = await ctx.model.PushHistory.findAll({
+      limit: GET_MSG_NUM,
+      order: [
+        [ 'createdAt', 'DESC' ],
+      ],
       where: {
+        createdAt: {
+          [Op.lt]: lastDate,
+        },
         [Op.or]: [
           {
-            originId: userRes.id,
+            senderId: userRes.id,
+            receiverId: friendId,
           },
           {
-            targetId: userRes.id,
+            senderId: friendId,
+            receiverId: userRes.id,
           },
         ],
       },
     });
 
-    for (const itemFriend of followRes) {
-      const friendId = itemFriend.originId === userRes.id ? itemFriend.targetId : itemFriend.originId;
-      const nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
-
-      // 首次获取10条记录，之后加载历史记录，改由 createdAt 字段来获取，防止新增数据影响 limit
-      const historyMsgRes = await ctx.model.PushHistory.findAll({
-        limit: 10,
-        order: [
-          [ 'createdAt', 'DESC' ],
-        ],
-        where: {
-          createdAt: {
-            [Op.lte]: date || nowDate,
-          },
-          [Op.or]: [
-            {
-              senderId: userRes.id,
-              receiverId: friendId,
-            },
-            {
-              senderId: friendId,
-              receiverId: userRes.id,
-            },
-          ],
-        },
+    if (historyMsgRes && historyMsgRes.length) {
+      historyMsgRes.forEach(item => {
+        item.entity = JSON.parse(item.entity);
       });
-
-      if (historyMsgRes.length) {
-        historyMsgRes.forEach(item => {
-          item.entity = JSON.parse(item.entity);
-        });
-        messageRes.push({
-          roomId: itemFriend.id,
-          message: historyMsgRes.reverse(),
-          lastReceivedAt: null,
-        });
-      }
+      messageRes = historyMsgRes.reverse();
     }
-
     callBack && callBack(messageRes);
   }
 
+  // 群发送
+  async sendGroupMsg() {
+    const { ctx, app } = this;
+    const [{ uuid, msg, groupid }, callBack ] = ctx.args;
+
+  }
 }
 
 module.exports = ChatController;

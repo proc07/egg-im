@@ -1,6 +1,6 @@
 'use strict';
 const moment = require('moment');
-// 用户聊天对话表
+// 用户聊天对话表，消息存储库<-拉取漫游消息
 module.exports = app => {
   const { UUID, DATE, STRING, TEXT, TINYINT } = app.Sequelize;
   const Message = app.model.define('message', {
