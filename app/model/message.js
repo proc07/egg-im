@@ -1,5 +1,6 @@
 'use strict';
 const moment = require('moment');
+
 // 用户聊天对话表，消息存储库<-拉取漫游消息
 module.exports = app => {
   const { UUID, DATE, STRING, TEXT, TINYINT } = app.Sequelize;
@@ -45,10 +46,6 @@ module.exports = app => {
       },
       allowNull: false,
     },
-    // 1 = 字符串类型
-    // 2 = 图片类型
-    // 3 = 文件类型
-    // 4 = 语音类型
     type: {
       type: TINYINT,
       allowNull: false,

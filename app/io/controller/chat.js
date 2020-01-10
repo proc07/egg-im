@@ -2,7 +2,12 @@
 
 const Controller = require('egg').Controller;
 const moment = require('moment');
-const GET_MSG_NUM = 10; // 每次获取聊天数量
+const {
+  GET_MSG_NUM,
+  SYSTEM_ID,
+  PUSH_TYPE_MESSAGE,
+  PUSH_TYPE_ADD_FRIEND,
+} = require('../../types');
 
 class ChatController extends Controller {
   // 单聊发送
@@ -32,22 +37,20 @@ class ChatController extends Controller {
       });
 
       // 创建 push history 表
-      const historyRes = await ctx.model.PushHistory.create({
-        arrivalAt: null,
-        entity: JSON.stringify(msgRes.dataValues),
-        entityType: 1,
-        receiverId,
-        receiverPushId: '',
+      const pushRes = await ctx.service.pushHistory.createMessage({
         senderId: userRes.id,
+        receiverId,
+        entity: msgRes.dataValues,
       });
 
       // 发送给房间其他人
       ctx.socket.to(roomid).emit('getUnReadMsg', {
+        type: 'FRIEND',
         roomId: roomid,
-        message: historyRes,
+        message: pushRes,
       });
       // 回调给自己
-      callBack(null, historyRes);
+      callBack(null, pushRes);
     } catch (err) {
       callBack(err);
     }
@@ -97,6 +100,11 @@ class ChatController extends Controller {
         ],
       },
     });
+    // 加入系统通知
+    followRes.push({
+      type: 'SYSTEM',
+      originId: null,
+    });
 
     for (const itemFriend of followRes) {
       const friendId = itemFriend.originId === userRes.id ? itemFriend.targetId : itemFriend.originId;
@@ -138,15 +146,34 @@ class ChatController extends Controller {
           });
         }
 
-        historyMsgRes.forEach(item => {
-          item.entity = JSON.parse(item.entity);
-        });
+        for (const item of historyMsgRes) {
+          if (item.entityType === PUSH_TYPE_MESSAGE) {
+            item.entity = JSON.parse(item.entity);
+          } else if (item.entityType === PUSH_TYPE_ADD_FRIEND) {
+            const applyId = item.entity.toString();
+            const applyRes = await ctx.service.apply.getApplyDataById(applyId);
+            item.entity = applyRes;
+          }
+        }
 
-        messageRes.push({
-          roomId: itemFriend.id,
+        const friendData = {
           message: historyMsgRes.reverse(),
           unReadNum: unReadMsgLength,
-        });
+        };
+
+        if (itemFriend.type === 'SYSTEM') {
+          friendData.type = 'SYSTEM';
+          friendData.roomId = SYSTEM_ID;
+          friendData.user = {
+            portrait: 'https://res.cloudinary.com/zhangli-blog/image/upload/v1577949261/%E9%80%9A%E7%9F%A5.png',
+            alias: '消息通知',
+          };
+        } else {
+          friendData.type = 'FRIEND';
+          friendData.roomId = itemFriend.id;
+        }
+
+        messageRes.push(friendData);
       }
     }
 

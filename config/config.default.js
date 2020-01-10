@@ -28,6 +28,11 @@ module.exports = appInfo => {
     },
   };
 
+  // 关闭日志
+  config.logger = {
+    consoleLevel: 'NONE',
+  };
+
   // add your user config here
   const userConfig = {
     myAppName: 'egg-web-im',

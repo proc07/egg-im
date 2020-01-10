@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  up: (queryInterface, { UUID, UUIDV1, DATE, STRING, TINYINT }) => {
+  up: (queryInterface, { UUID, UUIDV1, DATE, STRING, TINYINT, BOOLEAN }) => {
     return queryInterface.createTable('apply', {
       id: {
         type: UUID,
@@ -31,6 +31,10 @@ module.exports = {
       applicantId: {
         type: UUID,
         allowNull: true,
+      },
+      status: {
+        type: BOOLEAN,
+        defaultValue: null,
       },
       createdAt: DATE,
       updatedAt: DATE,

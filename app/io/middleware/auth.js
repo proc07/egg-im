@@ -18,7 +18,9 @@ module.exports = () => {
       });
       return;
     }
-    console.log('客户端连接!', userRes.name);
+    console.log('============>客户端连接', userRes.name);
+    // 保存个人 socket id
+    await app.sessionStore.set(`SOCKETID_${userRes.id}`, socket.id);
 
     // 管理 添加在线用户
     let userOnlineList = await app.sessionStore.get(USER_ONLINE_LIST) || [];
@@ -67,7 +69,7 @@ module.exports = () => {
     socket.emit('unReadMsg', unReadHistoryData);
 
     await next();
-    console.log('客户端退出!', userRes.name);
+    console.log('客户端退出<============', userRes.name);
 
     const onlineList = await app.sessionStore.get(USER_ONLINE_LIST);
     // 删除掉在线列表用户
@@ -75,7 +77,7 @@ module.exports = () => {
     onlineList.splice(dIndex, 1);
 
     await app.sessionStore.set(USER_ONLINE_LIST, onlineList);
-    socket.broadcast.emit('broadcast', '在线用户: ' + onlineList);
+    await app.sessionStore.destroy(`SOCKETID_${userRes.id}`);
 
   };
 };

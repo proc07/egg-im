@@ -5,6 +5,7 @@ module.exports = app => {
     // 同步数据表字段，数据会被清空
     app.beforeStart(async () => {
       // await app.model.sync({ force: true });
+      await app.model.sync({ alter: true });
     });
   }
 

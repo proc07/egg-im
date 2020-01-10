@@ -19,13 +19,13 @@ module.exports = app => {
     },
     name: {
       type: STRING(128),
-      unique: true,
+      unique: 'column',
       allowNull: false,
     },
     password: STRING(255),
     phone: {
       type: STRING(64),
-      unique: true,
+      unique: 'column',
       allowNull: false,
     },
     portrait: STRING(255),
@@ -43,10 +43,9 @@ module.exports = app => {
       },
       comment: '1 = 女, 2 = 男',
     },
-    // 单点登录
     token: {
       type: STRING(191), // 191 最大长度：767(b)/4
-      unique: true,
+      unique: 'column',
     },
     createdAt: {
       type: DATE,

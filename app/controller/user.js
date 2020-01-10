@@ -174,8 +174,42 @@ class UserController extends BaseController {
     }
   }
 
-  // 获取用户群
-  async getUserGroup() {
+  // 获取某个用户信息&检测与自己是否为好友
+  async getUserInfoById() {
+    const { ctx, app } = this;
+    const Op = app.Sequelize.Op;
+    const { id } = ctx.request.query;
+    const selfData = await this.getUser();
+
+    const userRes = await ctx.model.User.findOne({
+      where: { id },
+      attributes: {
+        exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+      },
+    });
+    if (userRes) {
+      const followLength = await ctx.model.UserFollow.count({
+        where: {
+          [Op.or]: [
+            {
+              originId: selfData.id,
+              targetId: id,
+            },
+            {
+              originId: id,
+              targetId: selfData.id,
+            },
+          ],
+        },
+      });
+
+      this.baseSuccess({
+        user: userRes,
+        isFriend: !!followLength,
+      });
+    } else {
+      this.baseError('用户不存在！');
+    }
   }
 }
 

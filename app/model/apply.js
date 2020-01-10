@@ -33,11 +33,11 @@ module.exports = app => {
       type: UUID,
       allowNull: true,
     },
-    // 通过或者拒绝
-    // status: {
-    //   type: BOOLEAN,
-    //   defaultValue: false,
-    // },
+    // 通过 => true 拒绝 => false 等待 => null
+    status: {
+      type: BOOLEAN,
+      defaultValue: null,
+    },
     createdAt: {
       type: DATE,
       get() {
@@ -51,6 +51,10 @@ module.exports = app => {
       },
     },
   });
+
+  Apply.associate = function() {
+    app.model.Apply.belongsTo(app.model.User, { foreignKey: 'applicantId', targetKey: 'id', as: 'applicantUser' });
+  };
 
   return Apply;
 };

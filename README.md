@@ -88,3 +88,6 @@ const User = app.model.define('user',{
 }
 ```
 
+#### sequelize引起mysql错误：Too many keys specified. Max 64 keys allowed
+
+https://www.chaoswork.cn/1064.html

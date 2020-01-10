@@ -25,6 +25,7 @@ module.exports = app => {
   router.post('/user/logout', jwtErrorHandler, controller.user.logout);
   router.get('/user/getUserInfo', jwtErrorHandler, controller.user.getUserInfo);
   router.get('/user/searchUserByPhoneOrName', jwtErrorHandler, controller.user.searchUserByPhoneOrName);
+  router.get('/user/getUserInfoById', jwtErrorHandler, controller.user.getUserInfoById);
 
   router.post('/apply/applyFriend', jwtErrorHandler, controller.apply.applyFriend);
   router.post('/apply/applyGroup', jwtErrorHandler, controller.apply.applyGroup);

@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  up: (queryInterface, { UUID, UUIDV1, DATE, BLOB, STRING, TINYINT }) => {
+  up: (queryInterface, { UUID, UUIDV1, DATE, BLOB, STRING, INTEGER }) => {
     return queryInterface.createTable('push_history', {
       id: {
         type: UUID,
@@ -13,7 +13,7 @@ module.exports = {
       arrivalAt: DATE,
       // 实体：存储的就是 message 消息模型的 json 数据
       entity: BLOB,
-      entityType: TINYINT,
+      entityType: INTEGER,
       // 接收者（预加载）
       receiverId: {
         type: UUID,
