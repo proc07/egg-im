@@ -5,109 +5,50 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; padding-bottom: 60px; }
-      #messages li { padding: 5px 10px; }
-      #messages li:nth-child(odd) { background: #eee; }
+      .list { list-style-type: none; margin: 0; padding: 0; padding-bottom: 60px; }
+      .list { padding: 5px 10px; }
+      .list li { background: #eee; margin: 10px 0; }
     </style>
   </head>
   <body>
-    <ul id="messages"></ul>
-    <form action="">
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
+    <h1>User Online List</h1>
+    <ul class="list" id="users"></ul>
+    <h1>Group Online User</h1>
+    <ul class="list" id="groups"></ul>
+
     
     <script src="https://cdn.bootcss.com/socket.io/2.1.0/socket.io.js"></script>
     <script src="https://cdn.bootcss.com/lodash.js/4.17.10/lodash.min.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
-     // http://localhost:7000/?mid=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IjEzMjY1MDEzNDMzIiwiaWF0IjoxNTczNTQwNjYzLCJleHAiOjE1NzM2MjcwNjN9.dFqZpZMtlEk4x-G885f6Nx_kkK1ngYm2sun6710gZZU&roomid=ae684590-042d-11ea-be45-c1d323fb19d4&fid=08319940-fa1b-11e9-832b-555a96755bbd
-     // http://localhost:7000/?mid=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IjMzMzMzMzMzMyIsImlhdCI6MTU3MzU0MDU2MCwiZXhwIjoxNTczNjI2OTYwfQ.GxRG9y3E2v7qqxjDM3RXqoM-ouL5V6gm01oqHfJ_dcI&roomid=ae684590-042d-11ea-be45-c1d323fb19d4&fid=a2e03950-042b-11ea-a568-bdc685ea08ff
-      function getQueryByName(name) {
-        var result = location.search.match(new RegExp("[\?\&]" + name + "=([^\&]+)", "i"));
-        if (result == null || result.length < 1) {
-            return "";
-        }
-        return result[1];
-      }
-
-      function generateUUID() {
-          var d = new Date().getTime();
-          if (window.performance && typeof window.performance.now === "function") {
-              d += performance.now(); //use high-precision timer if available
-          }
-          var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-              var r = (d + Math.random() * 16) % 16 | 0;
-              d = Math.floor(d / 16);
-              return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-          });
-          return uuid;
-      }
-
       window.onload = function () {
-        const mid = getQueryByName('mid')
-        const roomid = getQueryByName('roomid')
-        const fid = getQueryByName('fid')
-
         var socket = io('/chat-im', {
           query: {
-            token: mid,
+            token: 'super-admin',
           },
           transports: ['websocket']
         });
 
-        setTimeout(() => {
-          // 获取聊天历史记录
-          socket.emit('getFriendMsgHistory', {
-            friendId: fid
-          }, function(msgData) {
-            // console.log(msgData);
-            msgData.reverse().forEach(item => {
-              if (item.senderId === fid) {
-                $('#messages').append($('<li>').text('对方发送消息：' + item.content));
-              } else {
-                $('#messages').append($('<li>').text('我发送消息：' + item.content));
-              }
-            })
-          });
-        }, 1000)
-        // 连接服务器
-        socket.on('connect', function(){
-          $('#messages').append($('<li>').text(socket.id + ' user connected'));
-        });
-        // 断开
-        socket.on('disconnect', function(){
-          $('#messages').append($('<li>').text(' user disconnected'));
-        });
-        socket.on('reconnecting',(attemptNumber)=>{
-          $('#messages').append($('<li>').text('重新连接: attemptNumber：' + attemptNumber));
-        })
-        // 获取未读的数据
-        socket.on('unReadMsg', function(data) {
-          console.log(data)
-          // socket.emit('readMsg', id, (arrivalAt) => {
-          //   $('#messages').append($('<li>').text(arrivalAt + '已读！' + msg));
-          // });
-        });
-        socket.on('broadcast', function(msg){
-          // socket.broadcast.emit('broadcast', '在线用户: ' + userOnlineList);
-          $('#messages').append($('<li>').text(`广播: ${msg}`));
-        });
+        // 获取在线用户列表
+        socket.emit('getUserOnlineList', function({ userList, groupList }) {
+          console.log(userList)
+          console.log(groupList)
+          userList.forEach(item => {
+            $('#users').append($('<li>').html(`
+              <img width="30" height="30" src="${item.portrait}" />
+              <di>user name: ${item.name} - ${item.phone}</div>
+              <p>${ item.socketId }</p>
+            `));
+          })
 
-        // 发送内容
-        $('form').submit(function(e){
-          e.preventDefault(); // prevents page reloading
-          socket.emit('sendMsg', {
-            uuid: generateUUID(),
-            msg: $('#m').val(),
-            roomid: roomid
-          });
-          $('#m').val('');
-          return false;
-        });
+          for (const groupid in groupList) {
+            $('#groups').append($('<li>').html(`
+              <div>groupid: ${ groupid } 在线人数：${groupList[groupid].length}</div>
+              <div>${ JSON.stringify(groupList[groupid].sockets) }</div>
+            `))
+          }
 
+        });
       };
     </script>
   </body>

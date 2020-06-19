@@ -1,6 +1,6 @@
 'use strict';
 const moment = require('moment');
-// 群组
+// 群聊
 module.exports = app => {
   const { UUID, UUIDV1, DATE, STRING } = app.Sequelize;
   const Group = app.model.define('group', {

@@ -11,10 +11,12 @@ module.exports = app => {
   router.get('/', controller.home.index);
 
   // socket.io
-  io.of('/chat-im').route('sendMsg', io.controller.chat.sendMsg);
+  io.of('/chat-im').route('sendMsgToFriend', io.controller.chat.sendMsgToFriend);
+  io.of('/chat-im').route('sendMsgToGroup', io.controller.chat.sendMsgToGroup);
   io.of('/chat-im').route('setReadMsg', io.controller.chat.setReadMsg);
   io.of('/chat-im').route('getHistoryMsg', io.controller.chat.getHistoryMsg);
   io.of('/chat-im').route('getChatList', io.controller.chat.getChatList);
+  io.of('/chat-im').route('getUserOnlineList', io.controller.chat.getUserOnlineList);
 
   // api
   router.post('/cloudinary/uploadImage', controller.upload.uploadImage);
@@ -28,12 +30,14 @@ module.exports = app => {
   router.get('/user/getUserInfoById', jwtErrorHandler, controller.user.getUserInfoById);
 
   router.post('/apply/applyFriend', jwtErrorHandler, controller.apply.applyFriend);
+  router.post('/apply/createGroup', jwtErrorHandler, controller.apply.createGroup);
   router.post('/apply/applyGroup', jwtErrorHandler, controller.apply.applyGroup);
 
   router.post('/follow/applyUserFollow', jwtErrorHandler, controller.follow.applyUserFollow);
   router.post('/follow/saveUserAlias', jwtErrorHandler, controller.follow.saveUserAlias);
   router.get('/follow/getFollowers', jwtErrorHandler, controller.follow.getFollowers);
   router.get('/follow/getFriendFollow', jwtErrorHandler, controller.follow.getFriendFollow);
+  router.get('/follow/getGroups', jwtErrorHandler, controller.follow.getGroups);
 
   router.get('/chat/getHistory', controller.chat.getHistory);
 };

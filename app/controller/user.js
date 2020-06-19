@@ -134,7 +134,7 @@ class UserController extends BaseController {
           exclude: [ 'password', 'createdAt', 'updatedAt' ],
         },
       });
-      // 30day
+      // 30day = 30 * 24 * 60 * 60 * 1000
       const expireTime = 30 * 24 * 60 * 60 * 1000;
       await app.sessionStore.set(account, jwtToken, expireTime);
       await app.sessionStore.set(jwtToken, userUpdate, expireTime);
@@ -150,11 +150,20 @@ class UserController extends BaseController {
   // 退出
   async logout() {
     const { ctx, app } = this;
+    const nsp = app.io.of('/chat-im');
     const token = this.getAccessToken();
+    const selfData = await this.getUser();
     const verifyRes = await ctx.service.user.verifyToken(token);
-    const isSuccess = await app.sessionStore.destroy(verifyRes.phone);
+    const isPhoneSuccess = await app.sessionStore.destroy(verifyRes.phone);
+    const isTokenSuccess = await app.sessionStore.destroy(token);
+
     // 是否需要删除数据中的 token
-    if (isSuccess) {
+    if (isPhoneSuccess && isTokenSuccess) {
+      const socketId = await app.sessionStore.get(`SOCKETID_${selfData.id}`);
+      // 调用 adapter 方法踢出用户，客户端触发 disconnect 事件
+      nsp.adapter.remoteDisconnect(socketId, true, err => {
+        console.log(err);
+      });
       this.baseSuccess('退出成功！');
     } else {
       this.baseError('退出失败！');

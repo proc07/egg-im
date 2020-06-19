@@ -93,6 +93,7 @@ module.exports = appInfo => {
     io: {
       init: {
         // wsEngine: 'ws',
+        pingTimeout: 60000,
       },
       namespace: {
         '/chat-im': {

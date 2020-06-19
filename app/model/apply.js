@@ -15,8 +15,6 @@ module.exports = app => {
       allowNull: false,
     },
     // 申请的类型：
-    // 1 添加好友
-    // 2 添加群
     type: {
       type: TINYINT,
       allowNull: false,

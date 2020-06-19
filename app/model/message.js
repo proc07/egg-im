@@ -13,7 +13,7 @@ module.exports = app => {
       primaryKey: true,
       // defaultValue: UUIDV1,
     },
-    // 附件
+    // 附属信息
     attach: STRING(255),
     content: {
       type: TEXT,

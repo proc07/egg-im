@@ -26,7 +26,7 @@ $ open http://localhost:7001/
 ### redis
 
 - Use `redis-server` 启动服务
-- Use `redis-cli` 进入命令模式，可进行查询数据
+- Use `redis-cli -h 127.0.0.1 -p 6379 -a "zhangli123"` 进入命令模式，可进行查询数据
 
 ### 踩坑笔记
 

@@ -11,28 +11,33 @@ module.exports = app => {
       primaryKey: true,
       defaultValue: UUIDV1,
     },
+    // 申请者
     originId: {
       type: UUID,
       references: {
-        // 这是引用另一个模型
         model: 'user',
-        // 这是引用模型的列名称
         key: 'id',
       },
       allowNull: false,
     },
+    // 目标者
     targetId: {
       type: UUID,
       references: {
-        // 这是引用另一个模型
         model: 'user',
-        // 这是引用模型的列名称
         key: 'id',
       },
       allowNull: false,
     },
-    // 对 target 用户的备注名称
-    alias: STRING(128),
+    // 用户的名称备注
+    originAlias: {
+      type: STRING(128),
+      comment: 'target编辑origin用户名称',
+    },
+    targetAlias: {
+      type: STRING(128),
+      comment: 'origin编辑target用户名称',
+    },
     createdAt: {
       type: DATE,
       get() {

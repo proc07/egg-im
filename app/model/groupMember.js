@@ -1,6 +1,6 @@
 'use strict';
 const moment = require('moment');
-// 群组成员
+// 群聊成员
 module.exports = app => {
   const { UUID, UUIDV1, DATE, STRING, TINYINT } = app.Sequelize;
   const GroupMember = app.model.define('group_member', {
@@ -11,7 +11,7 @@ module.exports = app => {
       defaultValue: UUIDV1,
     },
     alias: STRING(128),
-    // -1 不接收消息
+    //  -1 不接收消息
     //  0 默认通知级别
     //  1 接收消息不提示
     notifyLevel: {
@@ -56,6 +56,11 @@ module.exports = app => {
       },
     },
   });
+
+  GroupMember.associate = function() {
+    app.model.GroupMember.belongsTo(app.model.Group, { foreignKey: 'groupId', targetKey: 'id', as: 'groupData' });
+    app.model.GroupMember.belongsTo(app.model.User, { foreignKey: 'userId', targetKey: 'id', as: 'userData' });
+  };
 
   return GroupMember;
 };

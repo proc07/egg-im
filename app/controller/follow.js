@@ -1,42 +1,56 @@
 'use strict';
 const BaseController = require('./base');
+const EXCLUDE_ATTR = [ 'password', 'createdAt', 'updatedAt', 'token' ];
 
 class FollowController extends BaseController {
   // 申请通过，添加为好友
   async applyUserFollow() {
     const { ctx } = this;
     const { originId } = ctx.request.body;
+    const selfData = await this.getUser();
 
     try {
-      const selfData = await this.getUser();
-      const isApply = await ctx.model.Apply.findOne({
+      const applyRes = await ctx.model.Apply.findOne({
         where: {
           targetId: selfData.id,
           applicantId: originId,
         },
       });
-      if (!isApply) {
-        this.baseError('添加失败，请先申请！');
-        return;
+      if (!applyRes) {
+        return this.baseError('添加失败，请先申请！');
       }
-      const isFollow = await ctx.model.UserFollow.findOne({
+      // 标记状态 => 已处理
+      await applyRes.update({
+        status: true,
+      });
+      // find or create
+      const [ resFollow, created ] = await ctx.model.UserFollow.findOrCreate({
         where: {
-          originId,
-          targetId: selfData.id,
+          originId, // 对方
+          targetId: selfData.id, // 我
+        },
+        defaults: {
+          // originAlias: '',
+          // targetAlias: '',
         },
       });
-      if (isFollow) {
-        this.baseError('请勿重复添加！');
-        return;
-      }
-
-      const oFollowRes = await ctx.model.UserFollow.create({
-        originId,
-        targetId: selfData.id,
+      // 获取对方的用户数据，前端需要数据展示
+      const originUser = await ctx.model.User.findOne({
+        where: {
+          id: originId,
+        },
+        attributes: {
+          exclude: EXCLUDE_ATTR,
+        },
       });
 
-      if (oFollowRes) {
-        this.baseSuccess('添加成功！');
+      if (created === false) {
+        this.baseError('请勿重复添加！');
+      } else {
+        this.baseSuccess({
+          ...resFollow.dataValues,
+          targetUser: originUser,
+        });
       }
     } catch (error) {
       this.baseError(error);
@@ -75,7 +89,7 @@ class FollowController extends BaseController {
       const options = {
         model: ctx.model.User,
         attributes: {
-          exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+          exclude: EXCLUDE_ATTR,
         },
         // 不展示自己id的数据
         where: { id: { [Op.ne]: selfData.id } },
@@ -123,17 +137,59 @@ class FollowController extends BaseController {
           as: 'originUser',
           model: ctx.model.User,
           attributes: {
-            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+            exclude: EXCLUDE_ATTR,
           },
         }, {
           as: 'targetUser',
           model: ctx.model.User,
           attributes: {
-            exclude: [ 'password', 'createdAt', 'updatedAt', 'token' ],
+            exclude: EXCLUDE_ATTR,
           },
         }],
       });
       this.baseSuccess(followRes);
+    } catch (error) {
+      console.log(error);
+      this.baseError(error);
+    }
+  }
+
+  // 获取加入的群组
+  async getGroups() {
+    const { ctx, app } = this;
+    const selfData = await this.getUser();
+
+    try {
+      const groups = await ctx.model.GroupMember.findAll({
+        where: {
+          userId: selfData.id,
+        },
+        include: [
+          {
+            as: 'groupData',
+            model: ctx.model.Group,
+          },
+        ],
+      });
+
+      for (const groupItem of groups) {
+        const membersRes = await ctx.model.GroupMember.findAll({
+          where: {
+            groupId: groupItem.groupId,
+          },
+          include: [
+            {
+              as: 'userData',
+              model: ctx.model.User,
+              attributes: {
+                exclude: EXCLUDE_ATTR,
+              },
+            },
+          ],
+        });
+        groupItem.setDataValue('members', membersRes);
+      }
+      this.baseSuccess(groups);
     } catch (error) {
       console.log(error);
       this.baseError(error);

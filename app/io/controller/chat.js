@@ -3,26 +3,31 @@
 const Controller = require('egg').Controller;
 const moment = require('moment');
 const {
+  CHAT_TYPE_GROUP,
+  CHAT_TYPE_FRIEND,
   GET_MSG_NUM,
-  SYSTEM_ID,
+  MESSAGE_TYPE_STRING,
   PUSH_TYPE_MESSAGE,
+  PUSH_TYPE_GROUP_MESSAGE,
   PUSH_TYPE_ADD_FRIEND,
+  PUSH_TYPE_ADD_GROUP,
+  PUSH_TYPE_ADD_GROUP_MEMBERS,
 } = require('../../types');
 
 class ChatController extends Controller {
   // 单聊发送
-  async sendMsg() {
+  async sendMsgToFriend() {
     const { ctx, app } = this;
     // const nsp = app.io.of('/chat-im');
-    const [{ uuid, msg, roomid }, callBack ] = ctx.args;
+    const [{ uuid, msg, roomId }, callBack ] = ctx.args;
     const { token } = ctx.socket.handshake.query;
     const userRes = await app.sessionStore.get(token);
-    const followRes = await ctx.model.UserFollow.findOne({
+    const follows = await ctx.model.UserFollow.findOne({
       where: {
-        id: roomid,
+        id: roomId,
       },
     });
-    const receiverId = followRes.originId === userRes.id ? followRes.targetId : followRes.originId;
+    const receiverId = follows.originId === userRes.id ? follows.targetId : follows.originId;
 
     try {
       // 创建 message 表
@@ -33,26 +38,60 @@ class ChatController extends Controller {
         // groupId: '',
         receiverId,
         senderId: userRes.id,
-        type: 1,
+        type: MESSAGE_TYPE_STRING,
       });
 
       // 创建 push history 表
-      const pushRes = await ctx.service.pushHistory.createMessage({
+      const pushRes = await ctx.service.pushHistory.userSendFriend({
         senderId: userRes.id,
         receiverId,
         entity: msgRes.dataValues,
       });
 
       // 发送给房间其他人
-      ctx.socket.to(roomid).emit('getUnReadMsg', {
+      ctx.socket.to(roomId).emit('getUnReadMsg', {
         type: 'FRIEND',
-        roomId: roomid,
+        roomId,
         message: pushRes,
       });
       // 回调给自己
       callBack(null, pushRes);
     } catch (err) {
       callBack(err);
+    }
+  }
+
+  // 群组发送
+  async sendMsgToGroup() {
+    const { ctx, app } = this;
+    // const nsp = app.io.of('/chat-im');
+    const [{ uuid, msg, roomId }, callBack ] = ctx.args;
+    const { token } = ctx.socket.handshake.query;
+    const userRes = await app.sessionStore.get(token);
+
+    try {
+      // 创建 message 表
+      const groupMessage = await ctx.model.Message.create({
+        id: uuid,
+        attach: '',
+        content: msg,
+        groupId: roomId,
+        // receiverId,
+        senderId: userRes.id,
+        type: MESSAGE_TYPE_STRING,
+      });
+      // 获取发送的用户信息
+
+      // 创建 push_history 表 & 发送 socket
+      await ctx.service.pushHistory.userSendGroup({
+        groupId: roomId,
+        entity: groupMessage.dataValues,
+      });
+
+      // 回调成功
+      callBack(null, true);
+    } catch (error) {
+      callBack(error);
     }
   }
 
@@ -84,11 +123,12 @@ class ChatController extends Controller {
     // const nsp = app.io.of('/chat-im');
     const [ date, callBack ] = ctx.args;
     const { token } = ctx.socket.handshake.query;
+    const nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
     const userRes = await app.sessionStore.get(token);
     const messageRes = [];
 
     // 获取全部好友
-    const followRes = await ctx.model.UserFollow.findAll({
+    const follows = await ctx.model.UserFollow.findAll({
       where: {
         [Op.or]: [
           {
@@ -100,15 +140,70 @@ class ChatController extends Controller {
         ],
       },
     });
-    // 加入系统通知
-    followRes.push({
+    // 获取群聊用户列表
+    const groupMembers = await ctx.model.GroupMember.findAll({
+      where: {
+        userId: userRes.id,
+      },
+    });
+
+    // 手动加入系统通知
+    follows.push({
       type: 'SYSTEM',
       originId: null,
     });
 
-    for (const itemFriend of followRes) {
+    // 群发给我的消息
+    for (const member of groupMembers) {
+      const groupMsg = await ctx.model.PushHistory.findAll({
+        limit: GET_MSG_NUM,
+        order: [
+          [ 'createdAt', 'DESC' ],
+        ],
+        where: {
+          createdAt: {
+            [Op.lte]: date || nowDate,
+          },
+          // groupId: ,
+          senderId: member.groupId,
+          receiverId: userRes.id,
+        },
+      });
+
+      if (groupMsg.length) {
+        // 获取未读数量，首次时进行请求
+        let unReadNum = 0;
+        if (!date) {
+          unReadNum = await ctx.model.PushHistory.count({
+            where: {
+              arrivalAt: null,
+              // groupId: ,
+              senderId: member.groupId,
+              receiverId: userRes.id,
+            },
+          });
+        }
+
+        for (const item of groupMsg) {
+          if ([ PUSH_TYPE_MESSAGE, PUSH_TYPE_GROUP_MESSAGE, PUSH_TYPE_ADD_GROUP ].indexOf(item.entityType) !== -1) {
+            item.entity = JSON.parse(item.entity);
+          } else if (item.entityType === PUSH_TYPE_ADD_GROUP_MEMBERS) {
+            // item.entity = item.entity.toString();
+          }
+        }
+
+        messageRes.push({
+          type: 'GROUP',
+          roomId: member.groupId,
+          message: groupMsg.reverse(),
+          unReadNum,
+        });
+      }
+    }
+
+    // 好友和系统的消息
+    for (const itemFriend of follows) {
       const friendId = itemFriend.originId === userRes.id ? itemFriend.targetId : itemFriend.originId;
-      const nowDate = moment().format('YYYY-MM-DD HH:mm:ss');
 
       // 获取全部未读消息
       const historyMsgRes = await ctx.model.PushHistory.findAll({
@@ -135,13 +230,14 @@ class ChatController extends Controller {
 
       if (historyMsgRes.length) {
         // 获取未读数量，首次时进行请求
-        let unReadMsgLength = null;
+        let unReadNum = 0;
         if (!date) {
-          unReadMsgLength = await ctx.model.PushHistory.count({
+          unReadNum = await ctx.model.PushHistory.count({
             where: {
               arrivalAt: null,
               senderId: friendId,
               receiverId: userRes.id,
+              // groupId: null,
             },
           });
         }
@@ -157,21 +253,11 @@ class ChatController extends Controller {
         }
 
         const friendData = {
+          type: itemFriend.type || 'FRIEND',
           message: historyMsgRes.reverse(),
-          unReadNum: unReadMsgLength,
+          unReadNum,
+          roomId: itemFriend.id,
         };
-
-        if (itemFriend.type === 'SYSTEM') {
-          friendData.type = 'SYSTEM';
-          friendData.roomId = SYSTEM_ID;
-          friendData.user = {
-            portrait: 'https://res.cloudinary.com/zhangli-blog/image/upload/v1577949261/%E9%80%9A%E7%9F%A5.png',
-            alias: '消息通知',
-          };
-        } else {
-          friendData.type = 'FRIEND';
-          friendData.roomId = itemFriend.id;
-        }
 
         messageRes.push(friendData);
       }
@@ -185,10 +271,31 @@ class ChatController extends Controller {
     const { ctx, app } = this;
     const Op = app.Sequelize.Op;
     // const nsp = app.io.of('/chat-im');
-    const [{ lastDate, friendId }, callBack ] = ctx.args;
+    const [{ type, lastDate, friendId, groupId }, callBack ] = ctx.args;
     const { token } = ctx.socket.handshake.query;
     const userRes = await app.sessionStore.get(token);
     let messageRes = [];
+    let rules = null;
+
+    if (type === CHAT_TYPE_FRIEND) {
+      rules = [
+        {
+          senderId: userRes.id,
+          receiverId: friendId,
+        },
+        {
+          senderId: friendId,
+          receiverId: userRes.id,
+        },
+      ];
+    } else if (type === CHAT_TYPE_GROUP) {
+      rules = [
+        {
+          senderId: groupId,
+          receiverId: userRes.id,
+        },
+      ];
+    }
 
     // 首次获取10条记录，之后加载历史记录，改由 createdAt 字段来获取，防止新增数据影响 limit
     const historyMsgRes = await ctx.model.PushHistory.findAll({
@@ -200,21 +307,13 @@ class ChatController extends Controller {
         createdAt: {
           [Op.lt]: lastDate,
         },
-        [Op.or]: [
-          {
-            senderId: userRes.id,
-            receiverId: friendId,
-          },
-          {
-            senderId: friendId,
-            receiverId: userRes.id,
-          },
-        ],
+        [Op.or]: rules,
       },
     });
 
     if (historyMsgRes && historyMsgRes.length) {
       historyMsgRes.forEach(item => {
+        // console.log(item.entity);
         item.entity = JSON.parse(item.entity);
       });
       messageRes = historyMsgRes.reverse();
@@ -222,11 +321,28 @@ class ChatController extends Controller {
     callBack && callBack(messageRes);
   }
 
-  // 群发送
-  async sendGroupMsg() {
+  // 查看在线用户
+  async getUserOnlineList() {
     const { ctx, app } = this;
-    const [{ uuid, msg, groupid }, callBack ] = ctx.args;
+    const nsp = app.io.of('/chat-im');
+    const [ callback ] = ctx.args;
+    const onlineList = await app.sessionStore.get('USER_ONLINE_LIST');
+    const res = [];
+    // console.log(onlineList);
+    for (let i = 0; i < onlineList.length; i++) {
+      const token = onlineList[i];
+      const userRes = await app.sessionStore.get(token);
+      const socketId = await app.sessionStore.get(`SOCKETID_${userRes.id}`);
+      res.push({
+        ...userRes,
+        socketId,
+      });
+    }
 
+    callback({
+      userList: res,
+      groupList: nsp.adapter.rooms,
+    });
   }
 }
 

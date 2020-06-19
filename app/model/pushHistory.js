@@ -1,7 +1,7 @@
 'use strict';
 const moment = require('moment');
 // 消息推送历史纪录表
-// 作用：我这个用户需要收到哪些消息。不管是人给我发的消息，还是群发的，还是系统发的，都会在这个表中有一条记录
+// 作用：用户需要收到哪些消息。不管是人给我发的，还是群发的，还是系统发的，都会在这个表中有一条记录
 module.exports = app => {
   const { UUID, UUIDV1, DATE, BLOB, STRING, INTEGER } = app.Sequelize;
   const PushHistory = app.model.define('push_history', {
@@ -35,15 +35,20 @@ module.exports = app => {
     },
     // User.pushId 接收者当前设备推送id
     receiverPushId: STRING(255),
-    // 发送者，可为空（预加载）
+    // 发送者(系统，群，用户)
     senderId: {
       type: UUID,
-      references: {
-        model: 'user',
-        key: 'id',
-      },
       allowNull: true,
     },
+    // 群id（群id存在时，发送者id为空）
+    // groupId: {
+    //   type: UUID,
+    //   references: {
+    //     model: 'group',
+    //     key: 'id',
+    //   },
+    //   allowNull: true,
+    // },
     createdAt: {
       type: DATE,
       get() {
