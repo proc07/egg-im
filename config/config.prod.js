@@ -4,7 +4,7 @@ module.exports = {
   cluster: {
     listen: {
       port: 7000,
-      hostname: 'https://dashboard.heroku.com/apps/zhangli-website',
+      hostname: 'https://zhangli-website.herokuapp.com',
       // path: '/var/run/egg.sock',
     },
   },
@@ -13,7 +13,7 @@ module.exports = {
     dialect: 'mysql',
     host: 'us-cdbr-east-05.cleardb.net',
     port: 3306,
-    database: 'zl-im',
+    database: 'heroku_e1fb114102f150f',
     username: 'be1e167be316c6',
     password: '6651dec0',
     define: {
