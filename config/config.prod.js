@@ -6,7 +6,7 @@ module.exports = {
     listen: {
       port: process.env.PORT || process.env.$PORT || 7000,
       // hostname: 'https://zhangli-website.herokuapp.com',
-      hostname: '127.0.0.1',
+      hostname: '0.0.0.0',
       // path: '/var/run/egg.sock',
     },
   },
